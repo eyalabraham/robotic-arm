@@ -85,9 +85,10 @@
 #define     LOOP_TEST_POINT 0x01    // toggle PID loop timing test point
 
 // Timer1 frequency constants (sec 15.9.2 page 126..126)
-#define     SEQ_FREQ        50     // <------ change rate frequency in Hz
+#define     SEQ_FREQ        300     // <------ change rate frequency in Hz
 #define     TIM1_FREQ_CONST ((PRE_SCALER / SEQ_FREQ) -1)
 #define     PRE_SCALER      7812    // 8MHz clock divided by 1024 pre scaler
+#define     MAX_DIR_STEPS   512  //2048
 
 // UART command line processing
 #define     CLI_BUFFER      80
@@ -115,6 +116,7 @@ void reset(void) __attribute__((naked)) __attribute__((section(".init3")));
   Globals
 ****************************************************************************/
 volatile    uint16_t timerTicks = 0;    // clock timer ticks, increment at PID_FREQ [Hz]
+volatile int total_steps = 0;
 int         nDoPrompt = 1;              // print prompt
 
 /* ----------------------------------------------------------------------------
@@ -306,6 +308,10 @@ int process_cli(char *commandLine)
  */
 ISR(TIMER1_COMPA_vect)
 {
+    static  int i = 0;
+    static  int direction = -1;
+    static  int max_steps;
+
     /*  motor coil arrangement TEAC 14769070-60
      *
      *  One-Phase On sequence
@@ -329,28 +335,45 @@ ISR(TIMER1_COMPA_vect)
      */
 
     /* UNIPOLAR */
+    //max_steps = 3;
     //static  uint8_t motorChannel[4] = {0x01, 0x02, 0x04, 0x08}; // one-phase on, full step, CW
     //static  uint8_t motorChannel[4] = {0x08, 0x04, 0x02, 0x01}; // one-phase on, full step, CCW
 
-    static  uint8_t motorChannel[4] = {0x03, 0x06, 0x0c, 0x09}; // two-phase on, full step, CW
+    //max_steps = 3;
+    //static  uint8_t motorChannel[4] = {0x03, 0x06, 0x0c, 0x09}; // two-phase on, full step, CW
     //static  uint8_t motorChannel[4] = {0x09, 0x0c, 0x06, 0x03}; // two-phase on, full step, CCW
 
+    //max_steps = 7;
+    //static  uint8_t motorChannel[4] = {0x03, 0x06, 0x0c, 0x09}; // two-phase on, half step, CW
+    //static  uint8_t motorChannel[4] = {0x09, 0x0c, 0x06, 0x03}; // two-phase on, half step, CCW
+
     /* BIPOLAR */
+    max_steps = 3;
+
     //static  uint8_t motorChannel[4] = {0x08, 0x02, 0x04, 0x01}; // one-phase on, full step, CW
     //static  uint8_t motorChannel[4] = {0x01, 0x04, 0x02, 0x08}; // one-phase on, full step, CCW
 
-    //static  uint8_t motorChannel[4] = {0x09, 0x0a, 0x06, 0x05}; // two-phase on, full step, CW
+    static  uint8_t motorChannel[4] = {0x09, 0x0a, 0x06, 0x05}; // two-phase on, full step, CW
     //static  uint8_t motorChannel[4] = {0x05, 0x06, 0x0a, 0x09}; // two-phase on, full step, CCW
-
-    static  int i = 0;
 
     timerTicks++;                       // increment timer ticks
 
     PORTB ^= LOOP_TEST_POINT;           // toggle timing TP to output a cycle-test signal
 
-    PORTD  = (motorChannel[i] << 4);    // write to IO port
-    i++;
-    if (i > 4) i = 0;
+    total_steps++;
+    if ( total_steps == MAX_DIR_STEPS )
+    {
+        total_steps = 0;
+        direction *= -1;
+    }
+
+    PORTD = motorChannel[i] << 4;
+
+    i += direction;
+    if ( i < 0 )
+        i = max_steps;
+    else if (i > max_steps)
+        i = 0;
 
     PORTB ^= LOOP_TEST_POINT;           // toggle cycle-test signal
 }
