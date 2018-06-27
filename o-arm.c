@@ -151,6 +151,7 @@
 
 // CLI definitions
 #define     SYNTAX_ERR      "syntax error.\n"
+#define     SYN_ERR_PROMPT  "!"
 #define     HELP_TEXT       "\n\
   help                                  - help text\n\
   home all|arm|boom|turret|grip|rotate  - home positions\n\
@@ -158,7 +159,6 @@
   move <motor> <rate> <dir> <step>      - move relative steps\n\
   go <motor> <rate> <position>          - go to absolute position\n\
   mode interactive|remote               - control mode\n\
-  prompt on|off                         - turn prompt on/off\n\
   version                               - show version\n\
   stop                                  - stop all motors\n"
 
@@ -200,7 +200,7 @@ void home_gripper(void);
 ****************************************************************************/
 volatile     uint32_t timerTicks = 0;           // clock timer ticks, increment at PID_FREQ [Hz]
 volatile int total_steps = 0;
-int          nDoPrompt = 1, nInteractive = 1;   // print prompt
+int          nInteractive = 1;   // print prompt
 
 struct motor_t motors[MOTOR_COUNT] =
     {
@@ -293,36 +293,50 @@ int main(void)
                     uart_putchr(LF);
 
                     if ( process_cli(commandLine) == -1 )       // -- process command --
-                        printstr_p(PSTR(SYNTAX_ERR));
+                    {
+                        if ( nInteractive )                     // output appropriate prompt
+                        {
+                            printstr_p(PSTR(SYNTAX_ERR));
+                            printstr_p(PSTR(PROMPT));
+                        }
+                        else
+                        {
+                            printstr_p(PSTR(SYN_ERR_PROMPT));
+                        }
+                    }
+                    else
+                    {
+                        printstr_p(PSTR(PROMPT));               // output a prompt if required
+                    }
                     memset(commandLine, 0, CLI_BUFFER);         // reinitialize command line buffer for next command
                     nCliIndex = 0;
-                    if ( nDoPrompt )
-                        printstr_p(PSTR(PROMPT));               // output a prompt if required
                     break;
 
                 default:
-                    if ( nCliIndex < CLI_BUFFER )
                     {
-                        if ( inChar != BS )                     // is character a back-space?
-                            commandLine[nCliIndex++] = inChar;  // no, then store in command line buffer
-                        else if ( nCliIndex > 0 )               // yes, it is a back-space, but do we have characters to remove?
+                        if ( nCliIndex < CLI_BUFFER )
                         {
-                            nCliIndex--;                        // yes, remove the character
-                            commandLine[nCliIndex] = 0;
-                            if ( nInteractive )
+                            if ( inChar != BS )                 // is character a back-space?
+                                commandLine[nCliIndex++] = inChar;  // no, then store in command line buffer
+                            else if ( nCliIndex > 0 )           // yes, it is a back-space, but do we have characters to remove?
                             {
-                                uart_putchr(BS);
-                                uart_putchr(SPACE);
+                                nCliIndex--;                    // yes, remove the character
+                                commandLine[nCliIndex] = 0;
+                                if ( nInteractive )
+                                {
+                                    uart_putchr(BS);
+                                    uart_putchr(SPACE);
+                                }
                             }
+                            else
+                                inChar = 0;                     // no, so do nothing
                         }
                         else
-                            inChar = 0;                         // no, so do nothing
-                    }
-                    else
-                        inChar = BELL;
+                            inChar = BELL;
 
-                    if ( nInteractive )
-                        uart_putchr(inChar);                    // echo character to console
+                        if ( nInteractive )
+                            uart_putchr(inChar);                // echo character to console
+                    }
             }
         } /* UART character input */
     } /* endless while loop */
@@ -635,23 +649,6 @@ int process_cli(char *commandLine)
         else if ( strcmp(tokens[1], "remote") == 0 )
         {
             nInteractive = 0;
-            return 0;
-        }
-    }
-
-
-    /* Switch command line response prompt on or off.
-     */
-    else if ( strcmp(tokens[0], "prompt") == 0 )
-    {
-        if ( strcmp(tokens[1], "on") == 0 )
-        {
-            nDoPrompt = 1;
-            return 0;
-        }
-        else if ( strcmp(tokens[1], "off") == 0 )
-        {
-            nDoPrompt = 0;
             return 0;
         }
     }

@@ -1,3 +1,4 @@
+#!/usr/bin/python
 ###############################################################################
 # 
 # play.py
@@ -176,7 +177,7 @@ def send_cmd(serial_line, cmd_string, time_out=1):
     start = time.time()
     
     while True:
-        pr = serial_line.read(13)
+        pr = serial_line.read(3)
         
         if pr.strip('\r\n\t ') == '>':
             return 0
@@ -213,7 +214,7 @@ def get_arm_position(serial_line):
         a.append(pos)
         
     while True:
-       pr = serial_line.read(13)    
+       pr = serial_line.read(3)    
        if pr.strip('\r\n\t ') == '>':
            return a
            
