@@ -1,7 +1,8 @@
 ;
-; script
+; script2
 ;
 ; Pick up an object and drop off in a different location
+; reversing the actions in script 'script'
 ; Demonstrate sending commands to oArm and usage of special commands:
 ;   - 'wait' wait for all arm actuators to stop moving
 ;   - 'pause <time>' pause execution of script for <time> seconds
@@ -16,24 +17,24 @@ alias GRIP   4
 
 home all
 ; Move gripper to position
-go TURRET 300 776
+go TURRET 250 1500
+go ROTATE 15 90
 wait
-go BOOM 250 610
+go ARM 250 300
+go BOOM 250 520
 wait
 ; Close gripper
 go GRIP 20 110
 wait
-; Move gripper to new position
+; Move object to new position
 go BOOM 250 50
-go TURRET 250 1500
-go ROTATE 30 90
+go ARM 100 0
+go TURRET 300 776
+go ROTATE 30 165
 wait
-; put object in new position
-pause 2
-go ARM 250 300
-go BOOM 250 520
+go BOOM 250 610
 wait
-go GRIP 10 150
+go GRIP 30 150
 wait
 ; Go to origin
 go BOOM 300 0
