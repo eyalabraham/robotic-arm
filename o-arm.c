@@ -7,7 +7,6 @@
  *   (1) stepper motor commands to 3 stepper motors (arm, boom, turret)
  *   (2) servo command to gripper (rotate, open/close)
  *   (3) limit switch inputs
- *   (4) {optional} inverse kinematics calculation 
  *   (5) {optional} G-Code interpreter
  * 
  *  +-----+             +-----+
@@ -170,7 +169,7 @@
 ****************************************************************************/
 struct motor_t
     {
-        int rate;           // rate at which to change motor position command [1..SEQ_FREQ]
+        int rate;           // rate at which to change motor position command [1..MAX_STEP_RATE]
         int counter;        // motor is moved when counter == 0, decrement every time ISR runs
         int dir;            // direction, '-1' to low, '+1' to high, '0' stop
         int steps;          // steps to move, if '-1' then move until stopped or limit reached
@@ -573,8 +572,10 @@ int process_cli(char *commandLine)
         intTemp = atoi(tokens[2]);
         if ( intTemp < 0 )
             return -1;
-        else
-            motors[i].rate = (uint16_t)intTemp;
+        else if ( intTemp > MAX_STEP_RATE )
+            intTemp = MAX_STEP_RATE;
+
+        motors[i].rate = (uint16_t)intTemp;
 
         intTemp = atoi(tokens[4]);
         if ( intTemp < -1 )
@@ -611,8 +612,10 @@ int process_cli(char *commandLine)
         intTemp = atoi(tokens[2]);
         if ( intTemp < 0 )
             return -1;
-        else
-            motors[i].rate = (uint16_t)intTemp;
+        else if ( intTemp > MAX_STEP_RATE )
+            intTemp = MAX_STEP_RATE;
+
+        motors[i].rate = (uint16_t)intTemp;
 
         /* Calculate relative steps and direction
          * from current position to requested absolute position

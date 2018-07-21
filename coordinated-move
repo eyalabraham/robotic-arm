@@ -1,0 +1,41 @@
+;
+; coordinated-move
+;
+; Test script to evaluate relative movement rate in order
+; to tests arm and servo movement coordination
+;
+alias TURRET 0
+alias ARM    1
+alias BOOM   2
+alias ROTATE 3
+alias GRIP   4
+
+home all
+; Close gripper
+go GRIP 100 95
+; Move to position 1
+go TURRET 134 493
+go ARM 86 316
+go BOOM 250 917
+wait
+pause 1
+; Move to position 2
+go TURRET 108 604
+go ARM 240 563
+go BOOM 250 660
+wait
+pause 1
+; Move to position 3
+go TURRET 250 896
+wait
+pause 1
+; Move to position 4
+go TURRET 108 1007
+go ARM 240 316
+go BOOM 250 917
+wait
+pause 1
+; Move to position 1
+go TURRET 250 493
+wait
+

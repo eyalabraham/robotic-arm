@@ -1,0 +1,18 @@
+;
+; setup-origin
+;
+; Setup arm on origin coordinates of work surface
+;
+alias TURRET 0
+alias ARM    1
+alias BOOM   2
+alias ROTATE 3
+alias GRIP   4
+
+home all
+; Move gripper to position
+go TURRET 300 750
+wait
+go GRIP 30 90
+wait
+

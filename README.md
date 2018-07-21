@@ -75,7 +75,28 @@ The ATmega328P AVR performs these tasks:
  |  +--------------------- 'o'  | turret stepper driver
  +------------------------ 'o' /
 ```
-Note: all references to data sheet are for ATmega 328P Rev. 8161D–AVR–10/09
 
+All references to data sheet are for ATmega 328P Rev. 8161D–AVR–10/09
 Command line list see source or type 'help'<CR>
+
+## Project files
+- **config.h** - header file to configure arm parameters
+- **uart_drv.h** - UART driver header
+- **uart_drv.c** - UART driver
+- **utils.h** - utilities module header file
+- **utils.c** - utility function module
+- **o-arm.c** - main code module of robotic arm controller
+- **robot-arm-avr.c** - test code for stepper motor use
+
+- **play.py** - play back arm controller commands
+- **play2.py** - play back arm controller command using OARMOP class
+- **iktest.py** - test Inverse Kinematics model with movement commands in [mm] grid
+- **oarmik.py** - class defining Inverse Kinematics model
+- **oarmop.py** - arm operation class
+- **ik-range-plot.py** - script that plots valid points on movement plane
+
+- **script** - test commands list
+- **script2** - another text command list
+- **coordinated-move** - command list to test synchronized arm movements
+- **setup-origin** - command list to center arm
 

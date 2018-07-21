@@ -1,7 +1,7 @@
 /*****************************************************************************
 * config.h
 *
-* Header file containing robitic arm configuration parameters
+* Header file containing robotic arm configuration parameters
 *
 * Created: June 4, 2018
 *
@@ -22,11 +22,12 @@
 #define     STEPPER_LIM_HIGH    1535
 #define     STEPPER_LIM_LOW     0
 
-#define     TURRET_MAX_STEP     1552
-#define     ARM_MAX_STEP        500
+#define     TURRET_MAX_STEP     1500
+#define     ARM_MAX_STEP        750
 #define     BOOM_MAX_STEP       950
 
-#define     STEPPER_HOMING_RATE 100 // Hz
+#define     STEPPER_HOMING_RATE 150 // Hz
+#define     MAX_STEP_RATE       300
 
 /****************************************************************************
   Limit switch masks
