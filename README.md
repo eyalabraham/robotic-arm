@@ -4,8 +4,10 @@ The ATmega328P AVR performs these tasks:
 (1) stepper motor commands to 3 stepper motors (arm, boom, turret)
 (2) servo command to gripper (rotate, open/close)
 (3) limit switch inputs
-(4) {optional} inverse kinematics calculation 
+(4) {optional} Inverse Kinematics model done in host Python class
 (5) {optional} G-Code interpreter
+
+More on this project on this web page [https://sites.google.com/site/eyalabraham/robotic-arm]
 
 ```
  +-----+             +-----+

@@ -53,7 +53,15 @@ class OARMIK(object):
         # see: https://sites.google.com/site/eyalabraham/robotic-arm
         self.q = math.sqrt(pow(self.X,2) + pow(self.Y,2))
         self.theta_turret = math.atan2(self.Y, self.X)
-        self.alpha = math.acos((pow(self.X,2) + pow(self.Y,2) + pow(self.Z,2) - pow(self.arm_length,2) - pow(self.boom_length,2))/(-2*self.arm_length*self.boom_length))
+        
+        try:
+            self.alpha = math.acos((pow(self.X,2) + pow(self.Y,2) + pow(self.Z,2) - pow(self.arm_length,2) - pow(self.boom_length,2))/(-2*self.arm_length*self.boom_length))
+        except ValueError:
+            return 0,0,0,True
+        except:
+            print 'x={}, y={}, z={}'.format(x,y,z)
+            raise
+        
         self.theta_boom = 3.141592 - self.alpha
         self.beta = math.atan2((self.boom_length * math.sin(self.theta_boom)), (self.arm_length + self.boom_length * math.cos(self.theta_boom)))
         self.gamma = math.atan2(self.Z, self.q)

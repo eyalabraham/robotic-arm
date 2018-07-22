@@ -20,8 +20,8 @@ model = ik.OARMIK()
 #
 # Visualize arm's gripper-end accessible region
 #
-for x in range(50,300,2):
-    for y in range(-200,200,5):
+for x in range(60,350,2):
+    for y in range(-250,250,5):
         positions = model.get_positions(x,y,0)
         if positions[3]:
             plt.scatter(x, y, c="r")

@@ -252,6 +252,8 @@ class OARMOP(object):
 
         if wait == True:
             self.wait()
+            
+        return 0
 
     def set_gripper(self, g = 95):
         """Set gripper to absolute position."""
@@ -259,8 +261,8 @@ class OARMOP(object):
         cmd = 'go {} {} {}'.format(self.GRIP_SERVO, self.GRIP_SERVO_RATE, g)
 
         result = self.send_cmd(cmd)
-        if result == -1:
-            return result
+        
+        return result
     
     def home(self, m = 'all'):
         """Set a motor to home position"""
