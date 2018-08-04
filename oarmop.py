@@ -198,12 +198,11 @@ class OARMOP(object):
                 if int(p[motor][2]) != 0:
                     active = True
 
-    def move_to(self, a = 0, ar = 0, b = 0, br = 0, t = 0, tr = 0, r = 0, rr = 0, wait = True, grip_rotator_sync = False):
+    def move_to(self, a = 0, ar = 0, b = 0, br = 0, t = 0, tr = 0, r = 0, rr = 0, wait = True):
         """
-        Move [a]rm, [b]oom, [t]urret, and grip [r]otator to absolute positions.
+        Move [a]rm, [b]oom, [t]urret, and grip [r]otator to absolute positions in [steps].
         A zero value indicated a 'no change' in position.
         Always wait, block, for movement to complete before returning unless 'wait' is False.
-        'grip_rotator_sync' allows syncing grip rotation with turret rotation rate.
         """
 
         # A precaution against sending two move_to() commands without waiting

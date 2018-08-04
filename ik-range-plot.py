@@ -23,7 +23,7 @@ model = ik.OARMIK()
 for x in range(60,350,2):
     for y in range(-250,250,5):
         positions = model.get_positions(x,y,0)
-        if positions[3]:
+        if positions[4]:
             plt.scatter(x, y, c="r")
         else:
             plt.scatter(x, y, c="b")

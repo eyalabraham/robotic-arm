@@ -243,8 +243,8 @@ struct motor_t motors[MOTOR_COUNT] =
 //uint8_t motorChannel[4] = {0x09, 0x0c, 0x06, 0x03}; // two-phase on, half step, CCW
 
 /* BIPOLAR */
-//uint8_t motorChannel[4] = {0x08, 0x02, 0x04, 0x01}; // one-phase on, full step, CW
-//uint8_t motorChannel[4] = {0x01, 0x04, 0x02, 0x08}; // one-phase on, full step, CCW
+//uint8_t motorChannelCW[4] = {0x08, 0x02, 0x04, 0x01}; // one-phase on, full step, CW
+//uint8_t motorChannelCCW[4] = {0x01, 0x04, 0x02, 0x08}; // one-phase on, full step, CCW
 
 uint8_t motorChannelCW[4] = {0x09, 0x0a, 0x06, 0x05}; // two-phase on, full step, CW
 uint8_t motorChannelCCW[4] = {0x05, 0x06, 0x0a, 0x09}; // two-phase on, full step, CCW

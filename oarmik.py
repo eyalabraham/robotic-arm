@@ -40,81 +40,101 @@ class OARMIK(object):
         self.arm_limit = 750
         self.boom_limit = 950
         self.turret_limit = 1500
+        self.grip_rotator_max = 250
+        self.grip_rotator_center = 165
+        self.grip_rotator_min = 80
 
-    def get_positions(self, x, y, z):
-        """Use Inverse Kinematics to calculate and return motor positions from (x,y,z) coordinates."""
+    def get_positions(self, x, y, z, grip_rotation = 0.0):
+        """Use Inverse Kinematics to calculate and return motor positions from (x,y,z) grip rotation in [deg] coordinates."""
 
         # Apply end-effector offsets to get true target position
-        self.X = x - self.grip_x_offset
-        self.Y = y
-        self.Z = z + self.grip_z_offset
+        X = x - self.grip_x_offset
+        Y = y
+        Z = z + self.grip_z_offset
 
         # Calculate oArm geometry alpha/beta/gamma angles
         # see: https://sites.google.com/site/eyalabraham/robotic-arm
-        self.q = math.sqrt(pow(self.X,2) + pow(self.Y,2))
-        self.theta_turret = math.atan2(self.Y, self.X)
+        q = math.sqrt(pow(X,2) + pow(Y,2))
+        theta_turret = math.atan2(Y, X)
         
         try:
-            self.alpha = math.acos((pow(self.X,2) + pow(self.Y,2) + pow(self.Z,2) - pow(self.arm_length,2) - pow(self.boom_length,2))/(-2*self.arm_length*self.boom_length))
+            alpha = math.acos((pow(X,2) + pow(Y,2) + pow(Z,2) - pow(self.arm_length,2) - pow(self.boom_length,2))/(-2*self.arm_length*self.boom_length))
         except ValueError:
-            return 0,0,0,True
+            return 0,0,0,0,True
         except:
-            print 'x={}, y={}, z={}'.format(x,y,z)
+            print 'Exception with: x={}, y={}, z={}'.format(x,y,z)
             raise
         
-        self.theta_boom = 3.141592 - self.alpha
-        self.beta = math.atan2((self.boom_length * math.sin(self.theta_boom)), (self.arm_length + self.boom_length * math.cos(self.theta_boom)))
-        self.gamma = math.atan2(self.Z, self.q)
-        self.theta_arm = 1.570796 - (self.beta + self.gamma)
+        theta_boom = 3.141592 - alpha
+        beta = math.atan2((self.boom_length * math.sin(theta_boom)), (self.arm_length + self.boom_length * math.cos(theta_boom)))
+        gamma = math.atan2(Z, q)
+        theta_arm = 1.570796 - (beta + gamma)
 
         #print 'alpha {}, beta {}, gamma {}'.format(self.alpha, self.beta, self.gamma)
         #print 'theta_arm {}, theta_boom {}, theta_turret {}'.format(self.theta_arm, self.theta_boom, self.theta_turret)
 
         # Calculate stepper motor absolute positions
-        self.arm = int(round(self.theta_arm * self.stepper_motor))
-        self.boom = int(round((self.theta_boom - self.boom_offset_angle) * self.stepper_motor) + self.arm)
-        self.turret = int(round(self.turret_offset + self.theta_turret * self.stepper_motor))
+        arm = int(round(theta_arm * self.stepper_motor))
+        boom = int(round((theta_boom - self.boom_offset_angle) * self.stepper_motor) + arm)
+        turret = int(round(self.turret_offset + theta_turret * self.stepper_motor))
 
         # Limit checking
         # 'overrun' indicates that the (x,y,z) coordinates cannot be physically reached by the end effector
-        self.overrun = False
+        overrun = False
 
-        if self.arm < 0:
-            self.arm = 0
-            self.overrun = True
+        if arm < 0:
+            arm = 0
+            overrun = True
 
-        elif self.arm > self.arm_limit:
-            self.arm = self.arm_limit
-            self.overrun = True
+        elif arm > self.arm_limit:
+            arm = self.arm_limit
+            overrun = True
 
-        if self.boom < 0:
-            self.boom = 0
-            self.overrun = True
+        if boom < 0:
+            boom = 0
+            overrun = True
 
-        elif self.boom > self.boom_limit:
-            self.boom = self.boom_limit
-            self.overrun = True
+        elif boom > self.boom_limit:
+            boom = self.boom_limit
+            overrun = True
 
-        if self.turret < 0:
-            self.turret = 0
-            self.overrun = True
+        if turret < 0:
+            turret = 0
+            overrun = True
 
-        elif self.turret > self.turret_limit:
-            self.turret = self.turret_limit
-            self.overrun = True
+        elif turret > self.turret_limit:
+            turret = self.turret_limit
+            overrun = True
 
+        grip_rotator = self.get_rotator_position(grip_rotation)
+        
+        if grip_rotator < self.grip_rotator_min:
+            grip_rotator = self.grip_rotator_min
+            
+        elif grip_rotator > self.grip_rotator_max:
+            grip_rotator = self.grip_rotator_max
+        
         # Return stepper motor positions and calculation status
-        return self.arm, self.boom, self.turret, self.overrun
+        return arm, boom, turret, grip_rotator, overrun
 
-    def get_move_rates(self, a, b, t, start_a = 0, start_b = 0, start_t = 0):
+    def get_move_rates(self, a, b, t, r, start_a = 0, start_b = 0, start_t = 0, start_r = 0):
         """Calculate and return movement rates for stepper motors."""
 
         # Calculate steps to move for each motor
-        self.deltas = (abs(start_a - a),abs(start_b - b),abs(start_t - t))
-        self.max_delta = max(self.deltas)
+        deltas = (abs(start_a - a),abs(start_b - b),abs(start_t - t),abs(start_r - r))
+        max_delta = max(deltas)
 
         # Calculate relative step rate per motor and output as list
-        if self.max_delta > 0:
-            return map(lambda x: (self.base_move_rate * x / self.max_delta), self.deltas)
+        if max_delta > 0:
+            return map(lambda x: (self.base_move_rate * x / max_delta), deltas)
         else:
-            return 0,0,0
+            return 0,0,0,0
+            
+    def get_rotator_position(self, a = 0.0):
+        """Calculate and return grip rotator position for requested angle (in deg)."""
+        
+        a_rad = a * 3.141592 / 180.0
+        
+        pos = int(a_rad * self.servo_motor) + self.grip_rotator_center
+        
+        return pos

@@ -28,8 +28,13 @@ def main():
     start_position = [0,0,0]
     end_position = [0,0,0]
     
+    rotation = 0.0
+    
     # in [step/sec]
     rates = [0,0,0]
+    
+    # Some constants
+    LEGO_WIDTH = 108
     
     model = ik.OARMIK()
 
@@ -37,7 +42,7 @@ def main():
     
         oArm.home()
         
-        oArm.set_gripper(95)
+        oArm.set_gripper(LEGO_WIDTH)
         
         while True:
         
@@ -52,17 +57,20 @@ def main():
             elif position == (0,0,0):
                 oArm.home()
                 position = [0,0,0]
+                rotation = 0.0
                 start_position = [0,0,0]
                 end_position = [0,0,0]
                 rates = [0,0,0]
-                oArm.set_gripper(95)
+                oArm.set_gripper(LEGO_WIDTH)
                 continue
                 
+            rotation = input('     Enter grip rotation : ')
+
             # Calculate motor positions with Inverse Kinematics model
             end_position = position
             print '     Moving from: ', start_position, 'to: ', end_position
             
-            arm, boom, turret, overrun = model.get_positions(end_position[0],end_position[1],end_position[2])
+            arm, boom, turret, grip_rotator, overrun = model.get_positions(position[0],position[1],position[2], rotation)
         
             # Check for overrun
             if overrun == True:
@@ -71,10 +79,10 @@ def main():
 
             # Calculate relative movement rates
             motor_pos = oArm.get_arm_positions(wait = True)
-            arm_rate, boom_rate, turret_rate = model.get_move_rates(arm, boom, turret, motor_pos[1], motor_pos[2], motor_pos[0])
+            arm_rate, boom_rate, turret_rate, grip_rotator_rate = model.get_move_rates(arm, boom, turret, grip_rotator, motor_pos[1], motor_pos[2], motor_pos[0], motor_pos[3])
      
             # Move arm to position, wait for completion of movement
-            oArm.move_to(arm, arm_rate, boom, boom_rate, turret, turret_rate)
+            oArm.move_to(arm, arm_rate, boom, boom_rate, turret, turret_rate, grip_rotator, grip_rotator_rate)
             
             start_position = end_position
 
