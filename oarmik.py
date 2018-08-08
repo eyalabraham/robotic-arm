@@ -22,7 +22,7 @@ class OARMIK(object):
         # in [mm]
         self.boom_length = 160.0
         self.arm_length = 148.0
-        self.grip_x_offset = 30.0
+        self.grip_x_offset = 40.0
         self.grip_z_offset = -17.0
 
         # in [rad]
@@ -47,16 +47,17 @@ class OARMIK(object):
     def get_positions(self, x, y, z, grip_rotation = 0.0):
         """Use Inverse Kinematics to calculate and return motor positions from (x,y,z) grip rotation in [deg] coordinates."""
 
-        # Apply end-effector offsets to get true target position
-        X = x - self.grip_x_offset
-        Y = y
-        Z = z + self.grip_z_offset
-
         # Calculate oArm geometry alpha/beta/gamma angles
         # see: https://sites.google.com/site/eyalabraham/robotic-arm
-        q = math.sqrt(pow(X,2) + pow(Y,2))
-        theta_turret = math.atan2(Y, X)
+        theta_turret = math.atan2(y, x)
         
+        # Apply end-effector offsets to get true target position
+        X = x - (self.grip_x_offset * math.cos(theta_turret))
+        Y = y - (self.grip_x_offset * math.sin(theta_turret))
+        Z = z + self.grip_z_offset
+
+        q = math.sqrt(pow(X,2) + pow(Y,2))
+
         try:
             alpha = math.acos((pow(X,2) + pow(Y,2) + pow(Z,2) - pow(self.arm_length,2) - pow(self.boom_length,2))/(-2*self.arm_length*self.boom_length))
         except ValueError:

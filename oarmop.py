@@ -189,6 +189,8 @@ class OARMOP(object):
     def wait(self):
         """Read arm movement status and wait (block) for all motors to stop."""
         
+        print '     wait.'
+        
         active = True
 
         while active:
