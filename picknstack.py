@@ -85,7 +85,7 @@ def main():
     cap = cv2.VideoCapture(0)
     
     # Initialize color detector class
-    cl = colorlabeler.ColorLabeler()
+    cl = colorlabeler.ColorLabeler(color_dictionary = {"red": (100, 30, 50),"green": (25, 65, 45),"blue": (24, 43, 105),"orange": (160, 90, 50)})
     
     print ' s - stop, home arm, and show detected blocks\n p - activate robotic arm to pick-n-stack\n r - toggle display of ROI\n ESC - quit'
     
