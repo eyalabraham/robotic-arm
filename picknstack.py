@@ -33,26 +33,33 @@ import colorlabeler
 
 def main():
     """Identify blocks on a white page, their position, orientation, and color."""
+    global mouse_x, mouse_y, mouse_lclick
     
     #
     # initializations
     #
-    MODE_SHOW = 0                   # show identified block on webcam view
-    MODE_PICK = 1                   # activate robotic arm to pick-n-place
-    mode = MODE_SHOW
+    MODE_SHOW = 0                   # Show identified block on webcam view
+    MODE_PICK = 1                   # Activate robotic arm to pick-n-place
+    MODE_CAL  = 2                   # Grid to camera calibration mode
+    mode = MODE_CAL
     roi_show = False
     
-    mode_text = 'Mode: Show'
+    mode_text = 'Mode: Calibrate'
     fps_text = '? Fps'
     block_count_text = 'Blocks: ?'
+    block_count = 0
     blocks = []
 
+    # Calibration and coordinate transform, webcam pixel to arm grid
     ROI_XY   = (10,20,620,450)      # In the form of (x0,y0,x1,y1) TODO pick with mouse
-    ORIGIN_PIX = (421,475)          # Robot arm grid coordinate origin TODO mark with mouse
-    REFERENCE_MARKER = (421,135)
-    ORIGIN_OFFSET = (100,0)         # Offset of arm's (0,0) from location of ORIGIN_PIX
-    PIX_PER_MM = 2.24               # Robot arm grid coordinate resolution in pixels per mm
+    ORIGIN_OFFSET = (250,50)        # Offset of arm's (0,0) from location of top-left calibration point #1
+    CAL_POINT_2 = (150,-50)         # Bottom left calibration point #2
+    pixel_per_mm = 0.0              # Robot arm grid coordinate resolution in pixels per mm
     GRIP_ROTATE_LIMIT = 60.0
+    mouse_lclick = False
+    calib_points = 0
+    calib_coordinates = []
+    origin_pixel = (0,0)
     
     RED_BIN = (120,-160,10,-45)     # Drop locations for block colors 
     BLUE_BIN = (145,-120,10,-50)
@@ -63,8 +70,8 @@ def main():
     GRIPPER_LEGO_WIDTH = 105        # Some constants
     GRIPPER_RELEASE = 115
     GRIPPER_OPEN = 160
-    BRICK_DROP_PICK_HEIGHT = 5
-    BRICK_HEIGHT = 12
+    BRICK_DROP_PICK_HEIGHT = 12
+    BRICK_HEIGHT = 15
 
     # Initialize the inverse kinematic model
     model = ik.OARMIK()
@@ -76,6 +83,7 @@ def main():
     # Initialize display window and font
     font = cv2.FONT_HERSHEY_SIMPLEX
     cv2.namedWindow('blocks', cv2.WINDOW_NORMAL+cv2.WINDOW_AUTOSIZE)
+    cv2.setMouseCallback('blocks', mouse_click)
 
     # Initialize start time and frame count
     frame_count = 0
@@ -87,7 +95,7 @@ def main():
     # Initialize color detector class
     cl = colorlabeler.ColorLabeler(color_dictionary = {"red": (100, 30, 50),"green": (25, 65, 45),"blue": (24, 43, 105),"orange": (160, 90, 50)})
     
-    print ' s - stop, home arm, and show detected blocks\n p - activate robotic arm to pick-n-stack\n r - toggle display of ROI\n ESC - quit'
+    print ' s - stop, home arm, and show detected blocks\n p - activate robotic arm to pick-n-stack\n c - activate calibration mode\n r - toggle display of ROI\n ESC - quit'
     
     #
     # frame capture and processing loop
@@ -124,17 +132,18 @@ def main():
                 
                 b = box.transpose()
 
-                # Select contours within the ROI
+                # Select contours of certain size from within the ROI when system is calibrated
                 if (min(b[0]) >= ROI_XY[0] and min(b[0]) <= ROI_XY[2]  and \
                     max(b[0]) >= ROI_XY[0] and max(b[0]) <= ROI_XY[2]) and \
                    (min(b[1]) >= ROI_XY[1] and min(b[1]) <= ROI_XY[3]  and \
                     max(b[1]) >= ROI_XY[1] and max(b[1]) <= ROI_XY[3]) and \
-                   (contour_area >= 1500 and contour_area <= 2500):
+                   (contour_area >= 1500 and contour_area <= 2500) and \
+                   pixel_per_mm > 0.0:
                    
                     # Calculate contour parameters in arm coordinate space
                     # (x,y) coordinates
                     px, py = int(rect[0][0]), int(rect[0][1])
-                    y, x = ((ORIGIN_PIX[0] - px) / PIX_PER_MM) + ORIGIN_OFFSET[1], ((ORIGIN_PIX[1] - py) / PIX_PER_MM) + ORIGIN_OFFSET[0]
+                    y, x = ((origin_pixel[0] - px) / pixel_per_mm) + ORIGIN_OFFSET[1], ((origin_pixel[1] - py) / pixel_per_mm) + ORIGIN_OFFSET[0]
                     # Gripper rotation
                     contour_rotation = get_rotation(box)
                     if contour_rotation > 0:
@@ -209,8 +218,8 @@ def main():
                     #time.sleep(3)
                     
                     oArm.home('arm')
-                    oArm.home('boom')
-                    oArm.home('rotate')
+                    #oArm.home('boom')
+                    #oArm.home('rotate')
 
                     # An opportunity to exit 'pick' mode
                     key = cv2.waitKey(1) & 0xFF
@@ -219,6 +228,36 @@ def main():
 
                 mode = MODE_SHOW
                 mode_text = 'Mode: Show'
+
+        #
+        # Camera to grid run time calibration
+        # ** Click the two calibration points marked on the grid table **
+        # ** calibration does NOT account for camera rotation **
+        #
+        elif mode == MODE_CAL:
+
+            if mouse_lclick:
+                print 'Calibration point #{}: ({},{})'.format(calib_points, mouse_x, mouse_y)
+
+                if calib_points == 2:
+                    calib_points = 0
+                    del calib_coordinates[:]
+                    pixel_per_mm = 0.0
+
+                calib_coordinates.append((mouse_x,mouse_y))
+                calib_points = calib_points + 1
+                mouse_lclick = False
+
+            # Two clicks were registered
+            if calib_points == 2:
+                # Draw rectangle
+                cv2.rectangle(img,calib_coordinates[0],calib_coordinates[1],(255,0,0))
+                # Recalculate coordinate transform
+                if pixel_per_mm == 0.0:
+                    avg_pixel_distance = (abs(calib_coordinates[0][0]-calib_coordinates[1][0]) + abs(calib_coordinates[0][1]-calib_coordinates[1][1]))/2.0
+                    pixel_per_mm = avg_pixel_distance / 100.0
+                    origin_pixel = calib_coordinates[0]
+                    print '{:.1f}[pix/mm]'.format(pixel_per_mm)
 
         #
         # Calculate and display FPS.
@@ -239,12 +278,10 @@ def main():
         
         if roi_show:
             cv2.rectangle(img, (ROI_XY[0],ROI_XY[1]), (ROI_XY[2],ROI_XY[3]), (0,0,255), 1)
-            cv2.drawMarker(img, REFERENCE_MARKER, (0,0,255))
             
         cv2.putText(img, mode_text, (1, 30), font, 0.4, (255, 0, 0), 1, cv2.LINE_AA)
         cv2.putText(img, fps_text, (1, 45), font, 0.4, (255, 0, 0), 1, cv2.LINE_AA)
         cv2.putText(img, block_count_text, (1, 60), font, 0.4, (255, 0, 0), 1, cv2.LINE_AA)
-        cv2.drawMarker(img, ORIGIN_PIX, (0,255,0), thickness = 2)
         
         #
         #   key input mode/command
@@ -260,6 +297,9 @@ def main():
             mode = MODE_SHOW
         elif key == ord('r'):
             roi_show = not roi_show
+        elif key == ord('c'):
+            mode_text = 'Mode: Calibrate'
+            mode = MODE_CAL
         else:
             pass
 
@@ -332,6 +372,25 @@ def move_arm(arm_device, ik_model, x, y, z, grip_roration):
     arm_device.move_to(arm, arm_rate, boom, boom_rate, turret, turret_rate, grip_rotator, grip_rotator_rate)
 
     return True
+
+###########################################################
+#
+# mouse_click()
+#
+#   Mouse event callback function.
+#   Used to capture mouse event and mark object for tracking.
+#
+#   param:  event type, mouse coordinates and event parameters
+#   return: nothing, marks a frame region for tracker initialization
+#
+def mouse_click(event, x, y, flags, param):
+    """Mouse callback that returns x and y coordinates of pointer and an action flag."""
+    global mouse_x, mouse_y, mouse_lclick
+    
+    if event == cv2.EVENT_LBUTTONDOWN:
+        mouse_x = x
+        mouse_y = y
+        mouse_lclick = True
 
 ###############################################################################
 #
